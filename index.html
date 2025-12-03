@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Windows 95 Mobile Emulation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        /* --- Win95 Fonts --- */
+        /* Windows 95 Authentic Fonts */
         @font-face {
             font-family: 'MS Sans Serif';
             src: url('https://unpkg.com/win95-font@1.0.0/ms_sans_serif.woff2') format('woff2');
@@ -18,30 +16,30 @@
             src: url('https://unpkg.com/win95-font@1.0.0/ms_sans_serif_bold.woff2') format('woff2');
         }
         
-        /* --- Global Reset & Mobile Optimization --- */
+        /* Base Windows 95 Styles */
         * {
-            /* Crucial for touch emulation: Hide system cursor and disable default selections/context menus */
-            cursor: none !important; 
             user-select: none;
-            -webkit-touch-callout: none;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            /* Prevents browser from handling touch gestures, giving control to JS */
-            touch-action: none; 
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
         }
         
         body {
-            font-family: 'MS Sans Serif', 'VT323', monospace;
-            overflow: hidden;
-            background: #008080; /* Classic Win95 Teal */
+            font-family: 'MS Sans Serif', monospace;
+            background: #008080;
             margin: 0;
             padding: 0;
             height: 100vh;
             width: 100vw;
+            overflow: hidden;
+            position: fixed;
+            touch-action: none;
         }
         
-        /* --- Win95 UI Kit Styles --- */
+        /* Windows 95 UI Elements */
         .win95-bevel {
             border-style: solid;
             border-width: 2px;
@@ -63,35 +61,47 @@
         }
         
         .win95-button {
-            /* Inherits win95-bevel */
+            border-style: solid;
+            border-width: 2px;
+            border-top-color: #dfdfdf;
+            border-left-color: #dfdfdf;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            background-color: #c0c0c0;
             font-family: 'MS Sans Serif', monospace;
-            font-size: 12px;
-            padding: 3px 12px;
+            font-size: 11px;
+            padding: 4px 12px;
+            min-width: 75px;
+            cursor: pointer;
         }
         
-        .win95-button:active, .active-taskbar-item {
-            /* The 'pressed' look for buttons and active taskbar items */
+        .win95-button:active {
             border-top-color: #808080;
             border-left-color: #808080;
             border-right-color: #dfdfdf;
             border-bottom-color: #dfdfdf;
-            padding-top: 5px; /* Visual shift on press */
-            padding-bottom: 1px;
         }
         
         .win95-titlebar {
             background: linear-gradient(90deg, #000080, #1084d0);
             color: white;
             font-family: 'MS Sans Serif Bold', monospace;
-            font-size: 12px;
+            font-size: 11px;
             padding: 3px 5px;
-            letter-spacing: 0.5px;
-            cursor: pointer; /* Indicate draggable area */
+            cursor: default;
+            user-select: none;
         }
         
         .win95-menu {
             border: 2px solid #c0c0c0;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: #c0c0c0;
+        }
+        
+        .win95-menu-item {
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
         }
         
         .win95-menu-item:hover {
@@ -99,25 +109,201 @@
             color: white;
         }
         
-        /* Minesweeper specific */
-        .cell-hidden {
-            background: #c0c0c0;
-            border: 2px outset #dfdfdf; /* Changed to use light bevel for hidden state */
+        /* Desktop */
+        #desktop {
+            position: absolute;
+            inset: 0;
+            background: #008080;
+            overflow: hidden;
         }
         
-        .cell-revealed {
-            background: #c0c0c0;
-            border: 1px solid #808080; /* Simulates flat/pressed state */
-            font-family: 'MS Sans Serif Bold';
-            font-size: 14px;
-        }
-        
-        .cell-flag {
-            background: #c0c0c0;
-            border: 2px outset #dfdfdf;
-            color: red;
-            font-size: 12px;
+        .desktop-icon {
+            position: absolute;
+            width: 75px;
+            padding: 4px;
+            cursor: pointer;
             text-align: center;
+            border: 1px solid transparent;
+        }
+        
+        .desktop-icon.selected {
+            background: rgba(0, 0, 128, 0.5);
+            border: 1px dotted #c0c0c0;
+        }
+        
+        .desktop-icon img {
+            width: 32px;
+            height: 32px;
+            pointer-events: none;
+        }
+        
+        .desktop-icon span {
+            display: block;
+            font-size: 11px;
+            color: white;
+            margin-top: 4px;
+            text-shadow: 1px 1px #000;
+            pointer-events: none;
+        }
+        
+        /* Windows */
+        .window {
+            position: absolute;
+            background: #c0c0c0;
+            min-width: 200px;
+            min-height: 150px;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            border: 2px solid #c0c0c0;
+        }
+        
+        .window.hidden {
+            display: none;
+        }
+        
+        .window-content {
+            padding: 4px;
+            overflow: auto;
+            height: calc(100% - 26px);
+        }
+        
+        /* Taskbar */
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #c0c0c0;
+            border-top: 2px solid #dfdfdf;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+        
+        #start-button {
+            height: 34px;
+            padding: 0 8px;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            margin-right: 4px;
+        }
+        
+        #start-button img {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+        }
+        
+        #taskbar-programs {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            height: 100%;
+        }
+        
+        .taskbar-item {
+            max-width: 150px;
+            height: 34px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            margin-right: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .taskbar-item.active {
+            border-top-color: #808080;
+            border-left-color: #808080;
+            border-right-color: #dfdfdf;
+            border-bottom-color: #dfdfdf;
+        }
+        
+        #clock {
+            min-width: 60px;
+            font-size: 11px;
+            text-align: center;
+            padding: 4px 8px;
+            margin-left: 4px;
+        }
+        
+        /* Start Menu */
+        #start-menu {
+            position: absolute;
+            bottom: 42px;
+            left: 2px;
+            width: 200px;
+            display: none;
+        }
+        
+        #start-menu.show {
+            display: block;
+        }
+        
+        /* Mobile Touch Controls */
+        .mobile-ui {
+            display: none;
+        }
+        
+        .touch-button {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(192, 192, 192, 0.9);
+            border: 2px solid #dfdfdf;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #000;
+            z-index: 999;
+            touch-action: none;
+        }
+        
+        .touch-button:active {
+            border-color: #808080;
+        }
+        
+        #left-click-btn {
+            bottom: 60px;
+            right: 20px;
+        }
+        
+        #right-click-btn {
+            bottom: 60px;
+            right: 90px;
+        }
+        
+        /* PC Mouse Controls */
+        .pc-ui .win95-button:hover {
+            border-top-color: #808080;
+            border-left-color: #808080;
+            border-right-color: #dfdfdf;
+            border-bottom-color: #dfdfdf;
+        }
+        
+        .pc-ui .desktop-icon:hover {
+            background: rgba(0, 0, 128, 0.3);
+        }
+        
+        /* Minesweeper Specific */
+        .minesweeper-cell {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
         }
         
         .number-1 { color: #0000ff; }
@@ -128,486 +314,1617 @@
         .number-6 { color: #008080; }
         .number-7 { color: #000000; }
         .number-8 { color: #808080; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 16px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #dfdfdf;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border: 1px solid #808080;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .window {
+                max-width: 95vw !important;
+                max-height: 80vh !important;
+            }
+            
+            .desktop-icon {
+                width: 70px;
+            }
+            
+            .desktop-icon img {
+                width: 28px;
+                height: 28px;
+            }
+        }
     </style>
 </head>
-<body class="relative w-full h-full overflow-hidden">
-    <div id="desktop" class="absolute inset-0 bg-teal-500">
-        <div id="icon-notepad" class="absolute left-8 top-8 w-16 text-center select-none" ondblclick="openApp('notepad')">
-            <img src="https://img.icons8.com/color/48/000000/document.png" alt="Notepad" class="w-8 h-8 mx-auto filter drop-shadow">
-            <span class="text-white text-xs font-bold bg-teal-500 px-1 shadow-md">Notepad</span>
+<body>
+    <!-- Desktop -->
+    <div id="desktop">
+        <div class="desktop-icon" style="left: 20px; top: 20px;" data-app="mycomputer">
+            <img src="https://img.icons8.com/color/48/000000/computer.png" alt="My Computer">
+            <span>My Computer</span>
         </div>
         
-        <div id="icon-minesweeper" class="absolute left-8 top-32 w-16 text-center select-none" ondblclick="openApp('minesweeper')">
-            <img src="https://img.icons8.com/color/48/000000/mine.png" alt="Minesweeper" class="w-8 h-8 mx-auto filter drop-shadow">
-            <span class="text-white text-xs font-bold bg-teal-500 px-1 shadow-md">Minesweeper</span>
+        <div class="desktop-icon" style="left: 20px; top: 120px;" data-app="recyclebin">
+            <img src="https://img.icons8.com/color/48/000000/trash.png" alt="Recycle Bin">
+            <span>Recycle Bin</span>
+        </div>
+        
+        <div class="desktop-icon" style="left: 20px; top: 220px;" data-app="notepad">
+            <img src="https://img.icons8.com/color/48/000000/document.png" alt="Notepad">
+            <span>Notepad</span>
+        </div>
+        
+        <div class="desktop-icon" style="left: 20px; top: 320px;" data-app="minesweeper">
+            <img src="https://img.icons8.com/color/48/000000/mine.png" alt="Minesweeper">
+            <span>Minesweeper</span>
         </div>
     </div>
     
-    <div id="window-container" class="absolute inset-0 pointer-events-none">
-        </div>
+    <!-- Window Container -->
+    <div id="window-container"></div>
     
-    <div id="taskbar" class="absolute bottom-0 left-0 right-0 h-10 win95-bevel flex items-center px-1 z-[900] pointer-events-auto">
-        <button id="start-button" class="win95-bevel px-3 h-8 flex items-center font-bold text-sm mr-2 active:win95-button:active" onclick="toggleStartMenu()">
-            <img src="https://img.icons8.com/color/16/000000/windows-logo.png" alt="Start" class="mr-2">
+    <!-- Taskbar -->
+    <div id="taskbar">
+        <button id="start-button" class="win95-bevel">
+            <img src="https://img.icons8.com/color/16/000000/windows-logo.png" alt="Start">
             Start
         </button>
         
-        <div id="start-menu" class="absolute bottom-10 left-1 w-64 bg-c0c0c0 win95-menu hidden z-[950]">
-            <div class="win95-titlebar px-4 py-2 flex items-center bg-gray-600">
-                <img src="https://img.icons8.com/color/20/000000/windows-logo.png" alt="Windows" class="mr-2 filter drop-shadow">
-                <span class="font-bold">Windows 95</span>
-            </div>
-            <div class="p-2">
-                <div class="win95-menu-item px-4 py-2 hover:bg-blue-800 hover:text-white" onclick="openApp('notepad')">
-                    <img src="https://img.icons8.com/color/16/000000/document.png" class="inline mr-2">Notepad
-                </div>
-                <div class="win95-menu-item px-4 py-2 hover:bg-blue-800 hover:text-white" onclick="openApp('minesweeper')">
-                    <img src="https://img.icons8.com/color/16/000000/mine.png" class="inline mr-2">Minesweeper
-                </div>
-                <div class="win95-menu-item px-4 py-2 hover:bg-blue-800 hover:text-white" onclick="openApp('calculator')">
-                    <img src="https://img.icons8.com/color/16/000000/calculator.png" class="inline mr-2">Calculator
-                </div>
-                <div class="win95-menu-item px-4 py-2 hover:bg-blue-800 hover:text-white" onclick="openApp('paint')">
-                    <img src="https://img.icons8.com/color/16/000000/paint-brush.png" class="inline mr-2">Paint
-                </div>
-                <hr class="my-1 border-gray-400">
-                <div class="win95-menu-item px-4 py-2 hover:bg-blue-800 hover:text-white" onclick="shutdown()">
-                    <img src="https://img.icons8.com/color/16/000000/shutdown.png" class="inline mr-2">Shut Down...
-                </div>
-            </div>
+        <div id="taskbar-programs"></div>
+        
+        <div id="clock" class="win95-bevel-inset"></div>
+    </div>
+    
+    <!-- Start Menu -->
+    <div id="start-menu" class="win95-menu">
+        <div class="win95-titlebar">
+            <img src="https://img.icons8.com/color/16/000000/windows-logo.png" alt="Windows">
+            <span>Windows 95</span>
         </div>
-        
-        <div id="taskbar-programs" class="flex-1 flex items-center h-full overflow-x-auto">
+        <div class="p-1">
+            <div class="win95-menu-item" data-app="notepad">
+                <img src="https://img.icons8.com/color/16/000000/document.png" alt="Notepad" style="vertical-align: middle; margin-right: 8px;">
+                Notepad
             </div>
-        
-        <div id="clock" class="win95-bevel-inset px-3 py-1 text-sm font-bold min-w-20 text-center ml-auto">
-            12:00 PM
+            <div class="win95-menu-item" data-app="minesweeper">
+                <img src="https://img.icons8.com/color/16/000000/mine.png" alt="Minesweeper" style="vertical-align: middle; margin-right: 8px;">
+                Minesweeper
+            </div>
+            <div class="win95-menu-item" data-app="calculator">
+                <img src="https://img.icons8.com/color/16/000000/calculator.png" alt="Calculator" style="vertical-align: middle; margin-right: 8px;">
+                Calculator
+            </div>
+            <div class="win95-menu-item" data-app="paint">
+                <img src="https://img.icons8.com/color/16/000000/paint-brush.png" alt="Paint" style="vertical-align: middle; margin-right: 8px;">
+                Paint
+            </div>
+            <hr style="border: 1px solid #808080; border-top: 1px solid #dfdfdf; margin: 4px 0;">
+            <div class="win95-menu-item" onclick="shutdown()">
+                <img src="https://img.icons8.com/color/16/000000/shutdown.png" alt="Shutdown" style="vertical-align: middle; margin-right: 8px;">
+                Shut Down...
+            </div>
         </div>
     </div>
     
-    <div id="custom-cursor" class="absolute w-6 h-6 pointer-events-none z-[9999] hidden">
-        <svg width="32" height="32" viewBox="0 0 32 32">
-            <path d="M0,0 L0,32 L8,24 L12,28 L12,20 L32,32 L20,12 L24,8 L16,0 Z" fill="black"/>
-            <path d="M2,2 L2,28 L8,22 L10,24 L10,18 L28,28 L18,10 L22,8 L28,2 Z" fill="white"/>
-        </svg>
+    <!-- Mobile Touch Controls (hidden by default) -->
+    <div class="mobile-ui" id="mobile-controls">
+        <div class="touch-button" id="left-click-btn">👆</div>
+        <div class="touch-button" id="right-click-btn">🖱️</div>
     </div>
 
     <script>
-        // Global Variables
+        // ==================== DEVICE DETECTION ====================
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Mobile: Enable touch controls
+            document.body.classList.remove('pc-ui');
+            document.getElementById('mobile-controls').style.display = 'block';
+        } else {
+            // PC: Enable hover effects and mouse controls
+            document.body.classList.add('pc-ui');
+            // Remove mobile viewport restrictions
+            document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0');
+        }
+        
+        // ==================== GLOBAL STATE ====================
         let windows = [];
         let activeWindow = null;
-        let cursorPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-        let touchStartTime = 0;
-        let touchStartPos = { x: 0, y: 0 };
-        let isWindowDragging = false;
-        let dragWindow = null;
-        let dragOffset = { x: 0, y: 0 };
-        let isLongPress = false;
-        let longPressTimer = null;
-        const TOUCH_THRESHOLD = 10; // Pixels for move tolerance
-        const LONG_PRESS_DURATION = 500; // ms for long press
+        let startMenuOpen = false;
+        let touchState = {
+            startX: 0,
+            startY: 0,
+            startTime: 0,
+            isDragging: false,
+            isLongPress: false,
+            longPressTimer: null,
+            currentWindow: null,
+            dragOffset: { x: 0, y: 0 }
+        };
         
-        // App Variables
-        let minesweeperGame = null;
-        let calculator = { display: '0', firstOperand: null, waitingForSecondOperand: false, operator: null };
-        let paint = { canvas: null, context: null, painting: false, tool: 'pencil', color: '#000000', lineWidth: 2 };
-
-        // --- Core Initialization ---
+        // ==================== INITIALIZATION ====================
         document.addEventListener('DOMContentLoaded', function() {
-            initCursor();
             initClock();
-            setupTouchEvents(); // Initializes custom touch handlers
-            createWelcomeWindow();
+            setupEventListeners();
         });
-
-        // --- Enhanced Touch & Cursor Logic (Android Focus) ---
-
-        function initCursor() {
-            const cursor = document.getElementById('custom-cursor');
-            cursor.style.left = (cursorPos.x - 4) + 'px';
-            cursor.style.top = (cursorPos.y - 4) + 'px';
-            cursor.style.display = 'block';
-        }
-
-        function setupTouchEvents() {
-            // Use passive: false to allow e.preventDefault()
-            document.addEventListener('touchstart', handleTouchStart, { passive: false });
-            document.addEventListener('touchmove', handleTouchMove, { passive: false });
-            document.addEventListener('touchend', handleTouchEnd, { passive: false });
-            // Prevent default browser context menu
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-        }
-
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            touchStartTime = Date.now();
-            touchStartPos = { x: touch.clientX, y: touch.clientY };
-            isLongPress = false;
-            isWindowDragging = false;
-            dragWindow = null;
+        
+        // ==================== EVENT LISTENERS ====================
+        function setupEventListeners() {
+            // Start button
+            document.getElementById('start-button').addEventListener('click', toggleStartMenu);
             
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
-            const titleBar = element ? element.closest('.win95-titlebar') : null;
-            
-            if (titleBar) {
-                // Prepare for window drag
-                const windowElement = titleBar.closest('.window');
-                if (windowElement) {
-                    dragWindow = windowElement;
-                    const rect = windowElement.getBoundingClientRect();
-                    dragOffset = {
-                        x: touch.clientX - rect.left,
-                        y: touch.clientY - rect.top
-                    };
-                    bringToFront(dragWindow.id);
-                }
-            } 
-            
-            // Set a universal long press timer
-            longPressTimer = setTimeout(() => {
-                isLongPress = true;
-                // If a non-draggable area was long-pressed, prevent drag state confusion
-                if (!dragWindow) {
-                    handleClick(touchStartPos.x, touchStartPos.y, 'right');
-                }
-            }, LONG_PRESS_DURATION);
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const dx = Math.abs(touch.clientX - touchStartPos.x);
-            const dy = Math.abs(touch.clientY - touchStartPos.y);
-            
-            // 1. Update cursor position
-            cursorPos = { x: touch.clientX, y: touch.clientY };
-            document.getElementById('custom-cursor').style.left = (cursorPos.x - 4) + 'px';
-            document.getElementById('custom-cursor').style.top = (cursorPos.y - 4) + 'px';
-            
-            // 2. Check move threshold (cancel long press)
-            if (dx > TOUCH_THRESHOLD || dy > TOUCH_THRESHOLD) {
-                clearTimeout(longPressTimer);
-                isLongPress = false; 
-            }
-            
-            // 3. Handle Window Dragging
-            if (dragWindow && (dx > TOUCH_THRESHOLD || dy > TOUCH_THRESHOLD)) {
-                isWindowDragging = true;
-                dragWindow.style.left = (touch.clientX - dragOffset.x) + 'px';
-                dragWindow.style.top = (touch.clientY - dragOffset.y) + 'px';
-            }
-        }
-
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            clearTimeout(longPressTimer);
-            
-            const touchDuration = Date.now() - touchStartTime;
-            const dx = Math.abs(cursorPos.x - touchStartPos.x);
-            const dy = Math.abs(cursorPos.y - touchStartPos.y);
-            
-            const isTap = touchDuration < LONG_PRESS_DURATION && dx < TOUCH_THRESHOLD && dy < TOUCH_THRESHOLD && !isWindowDragging;
-            
-            if (isTap) {
-                // Emulate Left Click / Short Tap
-                handleClick(touchStartPos.x, touchStartPos.y, 'left');
-            } else if (isLongPress && !isWindowDragging) {
-                // Emulate Right Click / Long Press
-                handleClick(touchStartPos.x, touchStartPos.y, 'right');
-            }
-            
-            // Reset drag state
-            isWindowDragging = false;
-            dragWindow = null;
-            isLongPress = false;
-        }
-
-        function handleClick(x, y, type) {
-            const element = document.elementFromPoint(x, y);
-            if (!element) return;
-            
-            const cellElement = element.closest('#minesweeper-grid > div');
-            
-            if (type === 'left') {
-                // Standard UI Click (Start Button, Max/Min/Close, Calculator Buttons)
-                element.click();
+            // Desktop icons (double-click or double-tap)
+            document.querySelectorAll('.desktop-icon').forEach(icon => {
+                let lastTap =  {
+ icon.addEventListener(isMobile ? 'touchend' : 'dblclick', function(e) {
+                    e.preventDefault();
+                    const currentTime = Date.now();
+                    
+                    if (isMobile) {
+                        if (currentTime - lastTap < 300) {
+                            const app = this.dataset.app;
+                            openApp(app);
+                        }
+                        lastTap = currentTime;
+                    } else {
+                        const app = this.dataset.app;
+                        openApp(app);
+                    }
+                });
                 
-                // Minesweeper Reveal
-                if (cellElement) {
-                    revealCell(parseInt(cellElement.dataset.x), parseInt(cellElement.dataset.y));
+                // Visual feedback for mobile
+                if (isMobile) {
+                    icon.addEventListener('touchstart', function() {
+                        this.classList.add('selected');
+                    });
+                    icon.addEventListener('touchend', function() {
+                        setTimeout(() => this.classList.remove('selected'), 200);
+                    });
                 }
-            } else if (type === 'right') {
-                // Minesweeper Flag
-                if (cellElement) {
-                    toggleFlag(parseInt(cellElement.dataset.x), parseInt(cellElement.dataset.y));
-                }
-            }
+            });
             
-            // Ensure window gets focus on any click inside it
-            const windowElement = element.closest('.window');
-            if (windowElement) {
-                bringToFront(windowElement.id);
+            // Start menu items
+            document.querySelectorAll('#start-menu .win95-menu-item[data-app]').forEach(item => {
+                item.addEventListener(isMobile ? 'touchend' : 'click', function(e) {
+                    e.preventDefault();
+                    const app = this.dataset.app;
+                    openApp           );
+                    toggleStartMenu();
+                });
+            });
+            
+            // Window management (touch vs mouse)
+            if (isMobile) {
+                setupMobileTouchEvents();
+            }: else {
+                setupPCMouseEvents();
             }
         }
-
-        // --- Window Management Class ---
-
-        class Window {
-            constructor(id, title, content, width = 400, height = 300) {
+        
+42 // ==================== MOUSE EVENTS (PC) ====================
+        function setupPCMouseEvents() {
+            // Window dragging
+            document.addEventListener('mousedown', function(e) {
+                const titlebar = e.target.closest('.win95-titlebar');
+                if (titlebar) {
+                    const window = titlebar.closest('.window');
+                    if (window) {
+                        bringToFront(window.id);
+                        startWindowDrag(window, e.clientX, e.clientY);
+                    }
+                }
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+               ;
+ (touch left.isDragging  touchStatepxWindow) {
+ width:                     const x = e.clientX - touchState.dragOffset.x;
+                    const y = e.clientY - touchState.dragOffset.y;
+                    touchState.currentWindow.style.left = x + 'px';
+                    touchState.currentWindow.style.top = y + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                touchState.isDragging = false;
+                touchState.currentWindow = null;
+            });
+        }
+        
+        // ==================== TOUCH EVENTS (MOBILE) ====================
+        function setupMobileTouchEvents() {
+            document.addEventListener('200px;
+            handle: none;
+, }
+        
+       :start-menu.show {
+            document: blockEventListener('touchmove', handleTouchMove, { passive: false });
+                       document.addEventListener('       chend', handleTouchEnd-button {
+ passive: false });
+            
+            width: context60
+            document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        function handleTouchStart(e)(192, ();
+            const touch192 e.touches[0];
+           );
+ target = document.elementFrom2pxouch.clientX, touch.clientY);
+            
+            touchState.startX = touch.clientX;
+            touchState.startY = touch.clientY;
+            touchState.startTime = Date.now();
+            touchState.isDragging = false;
+            
+            const title;
+ target            border-radius-titlebar');
+50 if (titlebar display window = titlebar.closest('.window');
+                if (window): center;
+            {
+                    bringTo-content(window.id);
+                   -size: 24px;
+            color: // Long press timer;
+            z-index: 999 dragging            touch-action: none;
+       .long        
+        .touch-buttonTimeout {
+            border-color: #                       080;
+        }
+        
+        #left-click-btn {
+ touchState.isLongPress  = true;
+                        const rect = window.getBoundingClientRect();
+                        touchState.dragOffset right: 20px;
+        = {
+                            x: touch.clientX - bottom.left,
+                            y: touch.clientY - rect.top
+                        };
+                           
+        /*);
+                Controls */
+        .pc-ui .win95 function:hover {
+Touch border-top(e) {
+            e.preventDefault();
+            const touch = e.touches border-right-color: #dfdfX = Math.abs-bottom-color: #dfdf touchState.startX }
+        
+        .pc-ui .desktop-icon.abs(touch.client            background touch rgba(0, 0, 128, 0 moving3);
+        }
+        
+        /* Minesweeper > */
+        .minesweeper deltaY > 10) {
+: 24(t;
+            height: Timer);
+            }
+            
+            // Drag window
+;
+            font-weighttouchState.isLongPress display: flex;
+            align-items: center;
+            justify-content: center true;
+ cursor: pointer;
+            user.clientX - touch       .dragOffset.x;
+ .number-1 {.clientY - touchStateff;.y;
+                touchState.currentWindow.style.left: x + 'px';
+                touchState.currentWindow.style.top = y + 'px';
+            }
+ }
+        .       - handleTouchEnd(e) #           080.preventDefault();
+            clearTimeout(touchState colorPressTimer);
+            
+                   touch = e-Touches[0];
+            const duration = Date.now() -number-7 { color;
+ #000000;X =        .number-8 { color:(touch.clientX - touchState.start        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+ouch width: 16px;
+        }
+);
+        ::-webkit-scrollbar-track {
+            background: #df           df;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+           5 &&: #c0c0c0;
+            borderClick(t:.clientX1 touchpx solid #808080;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .window {
+                max-width: 95vw !important;
+                max-height: 80vh !important;
+            touch            
+            .desktop-icon {
+                width: 70px function            }
+            
+, y,-icon img {
+                width: 28px target                height: 28px;
+            }
+        }
+    </style>
+</) return<body>
+               
+ Desktop -->
+    <div id="desktop                   <divtarget.classList.contains('window-close" {
+ style="left: 20px; top: 20px;" data-app="mycomputer">
+            window<img closeWindow(window.id);
+img.icons } else if (/color/.class000000.contains('.png-minimize')) {
+"                const window = target.closest('.My Computer');
+            <span>) minimizeWindow(window.id);
+            </ else if (target.class       .contains('window-maximize')) {
+                const window = style.closest('.window');
+                if (window)20Window(window.id;            }
+            
+ 120px;"we data-app-click (flag)
+           ">
+ (button === '="right' && target.classList.contains('minesweeper-cell')) {
+                constash.png = alt="RecycleInt">
+           .dataset.x>Recycle Bin</span>
+        </div>
+ parseInt<div class.dataset.y);
+                toggleFlag(x, y20px            }
+        top:         
+        // ==================== WINDOW MAN data-app="notepad">
+            <imgAGEMENT =================https://        class Window8.com            constructor(id,/, content, width =" alt400,Notepad">
+            <span {
                 this.id = id;
-                this.title = title;
-                this.content = content;
-                this.width = width;
-                this.height = height;
-                this.x = 50 + (windows.length * 20);
-                this.y = 50 + (windows.length * 20);
-                this.isMinimized = false;
-                this.isMaximized = false;
-                this.originalSize = { width, height, x: this.x, y: this.y };
+               >
+.title </div title;
+        
+ this.content = content;
+ class                this.width-icon width;
+                this.height = height: this.x20px50 + (windows.length * 30);
+                this.y = 50 +eper">
+.length * <img src="https://imgimized = false;
+                this.comMaximized = false;
+               48 this.originalSize = { width,", x:Minesweeper">
+            <span>M.y };
                 
                 this.create();
-            }
-            
-            create() {
-                const windowContainer = document.getElementById('window-container');
-                const uniqueId = this.id + '-' + Date.now(); // Ensure unique ID
-                
-                const windowHTML = `
-                    <div id="${uniqueId}" data-app-id="${this.id}" class="window absolute win95-bevel pointer-events-auto z-40" 
-                         style="width: ${this.width}px; height: ${this.height}px; left: ${this.x}px; top: ${this.y}px;">
-                        <div class="win95-titlebar flex justify-between items-center">
-                            <div class="flex items-center">
-                                <img src="https://img.icons8.com/color/16/000000/${this.getIcon()}.png" class="mr-2">
-                                <span>${this.title}</span>
+>
+        creatediv {
+                </ container>
+    
+    <!-- Window Container -->
+    <div id-containerwindow-container"></div>
+    
+HTML = `
+                    <div id="${<div id="task class="window" style="width: ${-button.width}px=" height95-bethis.height}px; left: ${this.x://img.icons8.com/color/}px/000000-index-logo.png"40 alt=" <div class=" Startwin95-titlebar">
+                                    ="display: flex; justify-contents"></-between; align-items        
+ center;">
+                                <div style="display: flex; align-items95-bevel-inset <imgdiv>
+   https://img>
+.icons8.com <!-- Start16 -->
+    <divthis="start-menu" class="win95-menu">
+="" style="margin-right: win95-titlebar">
+ <span >${this.title="https}</img>
+                                </div>
+                                <div style="display: flex; gap: 2px <span>Windows<button class="window-minimize win95-button" style="min class-widthp- 1">
+            <div class:="win2095-menu-item" data ="notepad</button>
+                                    <button class="window-maximize               95<img-button" style="min-width: 8px/color height: 20px/document; padding" alt="Not;">□</button>
+                                     middle; margin-right:="8px-close win95-button" style=" </div-width: 20px; height: 20px; padding:="minesweeper">
+               button>
+                                </div>
                             </div>
-                            <div class="flex space-x-1">
-                                <button class="window-minimize w-6 h-5 win95-bevel text-xs font-bold active:win95-button:active" onclick="minimizeWindow('${uniqueId}')">_</button>
-                                <button class="window-maximize w-6 h-5 win95-bevel text-xs font-bold active:win95-button:active" onclick="maximizeWindow('${uniqueId}')">□</button>
-                                <button class="window-close w-6 h-5 win95-bevel text-xs font-bold active:win95-button:active" onclick="closeWindow('${uniqueId}')">X</button>
-                            </div>
-                        </div>
-                        <div class="p-2 h-full overflow-auto" style="height: calc(100% - 28px);">
-                            ${this.content}
+img.icons8div/color/                        <div class000window-content/mine                           " altthis.contentM}
                         </div>
                     </div>
                 `;
                 
-                windowContainer.insertAdjacentHTML('beforeend', windowHTML);
-                this.element = document.getElementById(uniqueId);
-                this.id = uniqueId; // Update instance ID to unique ID
+-right: 8px;">
+                Minesweend
+            </divHTML);
+            this.element = document.getElementById(this-menu);
                 
-                this.addToTaskbar();
-                windows.push(this);
-                bringToFront(this.id);
+                data.addTo="bar();
+                windows.push(this<img               ="ToFront(this.id);
             }
             
-            getIcon() {
-                const icons = { 'notepad': 'document', 'minesweeper': 'mine', 'calculator': 'calculator', 'paint': 'paint-brush', 'welcome': 'windows-logo' };
-                return icons[this.id.split('-')[0]] || 'window';
-            }
+            get.com/color/ {
+16/ const icons =/calculator.png"': 'documentCalculator',
+                   ="mines-align: middle; margin-right: 8px': 'cal Calculator',
+                    'div':>
+            <div-brush',
+="win95-menu-item': 'computer',
+                    'recyclebin': 'trash://                    'welcome':.comwindows-logo/                };
+                return000/paint-br[this.id.png] || 'window';
+" }
             
             addToTaskbar() {
-                const taskbar = document.getElementById('taskbar-programs');
-                const taskbarItem = document.createElement('div');
-                taskbarItem.className = 'win95-bevel px-3 py-1 mx-1 text-sm cursor-pointer';
-                taskbarItem.textContent = this.title;
-                taskbarItem.onclick = () => this.isMinimized ? this.restore() : bringToFront(this.id);
-                taskbar.appendChild(taskbarItem);
-                this.taskbarItem = taskbarItem;
-            }
-            
-            minimize() {
-                this.isMinimized = true;
-                this.element.style.display = 'none';
-                this.taskbarItem.classList.add('win95-bevel-inset');
-                this.taskbarItem.classList.remove('active-taskbar-item');
-            }
-            
-            restore() {
+                const taskbar =:.getElementById('task 8pxs');
+;">
+                item
+            documentdiv>
+Element div');
+                item.className = 'task1px solid win95808080vel border-top: 1px.textContent =dfdf.title;
+                item.dataset.windowId 0 this.id;
+                item.addEventListener(isMobile ?" 'touchend()' : 'click<img src=" => {
+                    if.icons8this.isMin/16/000000/shutdown.png } alt {
+                        bring"ToFront(thisvertical.id);
+: }
+; });
+               -rightbar 8px;">
+);
+                Shut Down...
+bar </div>
+ item </div            }
+              div>
+()    
+ {
+                <!-- this TouchMinimized ( truehidden;
+                this).classList.add   ('<div class               ="mobile.taskbarItem.classList.add-controls">
+        <div class="touch-button" {
                 this.isMinimized = false;
-                this.element.style.display = 'block';
-                this.taskbarItem.classList.remove('win95-bevel-inset');
-                bringToFront(this.id);
-            }
+div>
+ this <div class.remove('-button" id               ="right-clickbar-btn">🖱️</('div>
+    </divTo>
+
+    <script);
+                   //            
+=== DEVICE DETECTION if (===
+       .isMaximized) = /                   |webOS| = this.originalSize.width +|iPod|Black.element.style.height =EM.originalSize.height + '/i.test';
+(nav                   igator.user.element.style.left = this if.original (Size.xMobile +) {
+px            //                    Mobile this: Enable touch.top =
+            documentSize.y + '.removepx('';
+pc                } else {
+                    this.originalSizeId = {
+-controls').style.display: this.elementblockWidth       ,
+ else                        {
+            // PC.element Enable hover effects and                        mouse controls
+           Int.body.classList.add.leftpc                        y: parse // Remove mobile.element restrictions
+            document.query)
+                   ('meta[name="viewport"]').                    this.element.style.width = 'window.innerWidth - 20) + '=device';
+                   ,.element.style.height = (window.innerHeight0');
+        }
+        
+       80 ==================== ' STATE ====================
+        let windows = =        let activepx';
+ null;
+        let startMenuOpen = false;
+       ';
+ touchState = {
+            startXMax:imized 0,
+this.is startYimized 0,
+ }
             
-            maximize() {
-                if (this.isMaximized) {
-                    this.element.style.width = this.originalSize.width + 'px';
-                    this.element.style.height = this.originalSize.height + 'px';
-                    this.element.style.left = this.originalSize.x + 'px';
-                    this.element.style.top = this.originalSize.y + 'px';
-                    this.isMaximized = false;
-                } else {
-                    this.originalSize = {
-                        width: this.element.offsetWidth, height: this.element.offsetHeight,
-                        x: parseInt(this.element.style.left), y: parseInt(this.element.style.top)
-                    };
-                    this.element.style.width = (window.innerWidth - 20) + 'px';
-                    this.element.style.height = (window.innerHeight - 50) + 'px';
-                    this.element.style.left = '10px';
-                    this.element.style.top = '10px';
-                    this.isMaximized = true;
-                }
-                bringToFront(this.id);
-            }
-            
-            close() {
-                this.element.remove();
-                this.taskbarItem.remove();
-                windows = windows.filter(w => w.id !== this.id);
-                // Clean up app specific stuff if needed (e.g., Minesweeper interval)
-                if (this.id.includes('minesweeper') && minesweeperGame) {
-                    clearInterval(minesweeperGame.timerInterval);
-                }
-            }
+ start close() {
+ 0,
+            is();
+: false,
+            isLongPress: false,
+            longPress windows = null.filter(w => w.idWindow this.id);
+,
+ }
         }
         
         function bringToFront(windowId) {
-            let maxZ = 40;
-            document.querySelectorAll('.window').forEach(w => {
-                const z = parseInt(w.style.zIndex) || 40;
-                if (z > maxZ) maxZ = z;
-                w.style.zIndex = z;
+             allWindows }
+        };
+        
+All('.window ==================== let maxZ ================= 40;
+ document.addEventListener.for('(w =>Loaded                function() z = initClockInt(w            setup.zIndexListeners)();
+ ||         });
+        
+40 // =================                EVENT LISTENz > =================Z) max function setupEventListeners();
             });
-            
-            const windowEl = document.getElementById(windowId);
-            if (windowEl) {
-                windowEl.style.zIndex = maxZ + 1;
-                activeWindow = windowId;
-            }
-            
-            // Update taskbar button states
-            document.querySelectorAll('#taskbar-programs > div').forEach(item => item.classList.remove('active-taskbar-item'));
-            const windowObj = windows.find(w => w.id === windowId);
-            if (windowObj && windowObj.taskbarItem) {
-                windowObj.taskbarItem.classList.add('active-taskbar-item');
-                windowObj.taskbarItem.classList.remove('win95-bevel-inset');
+ Start button
+            document.getElementBy window =('.getElementstartBy-button').(windowId);
+Listener(' (window', toggleStartMenu                window            
+.zIndex // maxZ + 1-click or double-t               )
+            document.querySelectorAll;
+desktop-icon'). // Update taskbar
+                document.querySelectorAll('.taskbar-item                iconforEach(item => {
+                    item 'touchend' : 'dblclick', function(e) {
+                    e.prevent(w => w.id === windowTime = Date.now();
+                    
+                    if (isObj.task) {
+                        if (currentTime - lastTap .classList.add('active');
+ const                }
             }
         }
         
-        function closeWindow(windowId) { windows.find(w => w.id === windowId)?.close(); }
-        function minimizeWindow(windowId) { windows.find(w => w.id === windowId)?.minimize(); }
-        function maximizeWindow(windowId) { windows.find(w => w.id === windowId)?.maximize(); }
-        
-        // --- Application Spawners ---
+        function(app);
+Window(windowId) {
+Tap = const currentTime;
+ windows.find(w => {
+                       .id === windowId);
+            if;
+                       window) window(app);
+                    }
+        }
+ });
+        function                minimize //Window(window feedbackId for) {
 
-        function openApp(appName) {
-            document.getElementById('start-menu').classList.add('hidden');
+            const window = windowsis.findMobile(w) {
+                   .id icon.add windowListener('touchstart            if function (() {
+)                        window this.minimizeList();
+.add       (' }
+selected        
+');
+                    });
+                   Window icon.addIdEventListener('           tou const windownd =', windows function()(w => w set.id ===(() window =>Id this.classList.remove if (window 200 window);
+.max                    });
+();
+        }
+            });
+                   
+            //Window Start menu(window,
+            document.querySelectorY)('# {
+           -menu .Statewin.is95-menu =-item[data;
+           ]'). touchStateEach(item => {
+ window item.addEventListener(is = window ?.get 'BoundingClientchend();
+ : 'clickState', functionOffset) = {
+                                   e x.preventDefault();
+                    client appX this -.app;
+                   .left open,
+App                y:                   Y toggleStartMenu();
+
+                           });
+ };
+        }
             
-            let windowContent = '';
-            let width = 400;
+        // // management ==================== APPLICATIONS =================touch vs       )
+            openApp ((appisNameMobile) {
+ {
+                Close setup startMobile menu
+            document.get }By else('start-menu').MouseListEvents('show            }
+                   // =================Open = MO;
+            
+ EVENT            (PC) Check===
+        already function setup
+MouseEvents() existing = windows.find Window =>
+           .id.add ===EventListenerName);
+           ', (existing function {
+               ) if (                const.is titlebarimized).target existing.restore('.();
+win               -title elsebar');
+                if(appNamebar)                {
+                   ;
+            }
+            
+            = title =bar            let('. =window '';
+                               let width (window 400                        bring letTo heightFront =(window .id);
+;
+            
+           Window switchDrag(windowName e.client) {
+, e case.clientY);
+                   ':
+                                   title =           Unt            
+            - document.addEventListener(' width', 500(e) {
+                = if 400touchState                   .is contentDragging = && `
+ touch                       State.currentWindow)=" {
+not                   epad x" e style="Xwidth touch State%;.drag height:.x;
+(                    const% y - =  e.clientpxY border:State .drag2Offset inset;
+ #                   c touch0Statec.current0Windowc.left; = x: px4';
+                    font-familyState monospace; fontWindow-size.style.top  =11px; y resize: none;" placeholder="Type here..."></textarea>
+px                                       <div }
+ style           margin });
+            
+             documentpx;Listener('-size:', function()px {
+               LengthState: Dragging = false=";
+               epadState">Window = nullspan;
+            });
+                           `        
+        // ====================                    
+ TO               UCH case 'S (MOeperB':
+ILE) title ====================
+ 'M function setupweToucheper()';
+ {
+                    document widthEvent Listener280(';
+touch                   start height = handleTouchStart,;
+                   : false =                                   .add styleEventmargin-bottom:touch move8 handlepx;Move-align, center; passive: flex false; justify            document.addEvent align-items(' center; gap: ',16px;">
+End ,<div { class passivewin: false-be            
+-in //set context" menu style
+="           padding document: Event4Listener(' contextpxmenu', e =>: bold.prevent;">Default💣         id="        
+-count"> function</spanTouchStartdiv) {
+            e .preventDefault class           win95 touch" =="restart.tM[0];
+we const target()" document style="min-width: 80ouch;">.clientNew,</.clientbutton);
+                                       
+             classState=" = touch.clientX;
+            touchStateset = touch="Y;
+: touchState.startTime = Datepx.now();
+ font           -weight touch:State.is;">⏱  false<span id            
+timer">0 title</span></ targetdiv>
+                        </div>
+bar ');
+<div id="mines (title-gridbar" style="               : const window =; title gapbar .closest1('.pxwindow');
+               -content if: ( centerwindow;"></) {
+>
+                        bringToFront<div.id);
+                   margin touch-topState:.current8px window text;
+-align                    
+:                    center // Long; press font timer-size for: dragging
+                   px touch;">State${.longisPressMobileTimer ? = ' setTapTimeout to =>, hold                        flag touch'State.isLong ' = true click;
+                        const rect reveal = Right window click.get:BoundingClient'();
+                       div touch                    `;
+                   Offset break =;
+ {
+                    
+                                           x: '.clientcalXculator rect.left title                            = 'Calculator touch                   Y width - rect.top220
+;
+                                           };
+ height                    = },  280400;
+);
+                    content }
+ = `
+                               }
+         
+<input type function=" handleTouch"Move id=")calc {
+           " readonlyDefault style();
+=" constwidth touch: =  e100.t%;ouches text[0];
+            
+ right const delta paddingX = Math.abs(touchpx; margin --bottom: State.startX;            const-sizeY = 16.abspx; font.client: - monospace; border.start );
+px inset            # Cancelc longc0 ifc0 too                       
+<div if="deltadisplay > grid;10-template deltaY: >( 410, 1                clearTimeout(t gapState.long Press4px);
+;">
+            }
+             
+<button class // Drag window95
+-button" onclick (touchcalcClearLong()Press"> &&C</State>
+                           Window<button {
+ class touchStatewinDragging =-button;
+ onclick               ="calc xClearEntry touch().clientX - touchbuttonState>
+.dragOffset ;
+<button const="win =95-button.clientY onclick touchState.dragOffset.y();
+">← touch</State.current>
+                            <button.left class x +win 'px-button"';
+ onclick touch="Statecalc.currentWindow">.style/</button>
+ y                            'px';
+<button           ="        }
+        
+-button       " function="calcInput('End7(e">)7 {
+           button e.preventDefault                           ();
+            clear classTimeoutwin(t95State-button.long"Press onclickTimer=");
+Input            
+('           8 const') touch"> = e</.changedbuttonTouches>
+[0                            ];
+<button            class const durationwin =95 Date-button.now() onclick - touchcalcStateInput.startTime;
+           ') const"> delta9X</ =button Math>
+.abs                           (t ouch<button.client classX=" -win touchState95.start-button");
+ onclick           =" constcalcOperationY('* =') Math.abs(t>
+.client                             touch classState=".startwinY95);
+-button            
+" //="calc (not4 drag'))
+">           4 if</ (!buttontouch>
+State                            <button && class delta="Xwin 95< -button" && onclick delta="Y Input< ('55) {
+">               5 handle</Clickbutton(touch                           .client X<button, class touch="winY95,-button duration"  onclick< ="500calc ?Input '('left6'') :"> '6right</');
+button>
+ }
+            
+ <button Reset class state
+win           95 touchState.isLong onclickPress=" =calc falseOperation;
+('-            touch">State</.isbuttonDragging>
+ =                            
+ false                                       <button touch classState=".currentwinWindow95 null;
+ onclick       =" }
+calc        
+Input       (' function1 handle')Click">(x1</button,>
+ button                            =  '<buttonleft class')=" {
+win           95 const-button target" = onclick document=".elementcalcInput('(x2,') y">);
+2           </ ifbutton>
+target                           )  return<button;
+ class           ="win Window95-button" onclick (targetInput.class('List3.contains')('">window3-close</'))button {
+                                           const<button window class ==" targetwin.closest95('.-buttonwindow');
+ onclick               =" ifcalc (Operationwindow('+)') close">Window+(window</.idbutton);
+>
+                                       
+ }                            else  if<button ( classtarget=".classwinList95.contains-button('"window-minimize'))Neg {
+               ()"> window+/- target</button>
+window');
+               <button if (="win95 minimize-buttonWindow(window onclick.id=");
+calcInput } else0 if') (">target0.class</Listbutton.contains>
+('                           window -max<buttonimize'))=" {
+win               95 const-button window" = onclick target=".closest('.Inputwindow');
+')"> if.</ (buttonwindow>
+)                            maximize Window<button(window.id);
+           95 }
+-button            
+"            onclick //=" MinescalcweEqualseper right">-click (</flagbutton           >
+ if                        ( </ ===div '>
+right                   ' ` &&;
+ target                   List break;
+                    
+('               mines case 'eperpaint':
+'))                    title {
+ =                ' constPaint x';
+ =                    parse widthInt =(target .dataset500.x;
+);
+                                   height const = y  =400 parse;
+Int(target.dataset =.y `
+);
+                                       toggle<div style(x=",display:);
+ flex           ; }
+ height        }
+         
+100%;">
+ =================                           === <div MAN classAGEMENT=" =================win===
+95       -be classvel Window-in {
+set           " constructor style(id=",width title:  content60,px width; = padding :400 ,8px =;  margin)-right {
+:                 this8.id;">
+ id;
+<div                class this=".titlepaint =-tool title selected;
+                data this-tool.content=" =p contentencil;
+                style this=".widthpadding =: width ;
+8               px this;.height = height;
+                this.x = pointer 50 margin +-bottom (:windows.length * 30);
+: #c0.yc =0 c500 (✏windows️.length</ *div30>
+);
+                                                this<div.is classMinimizedpaint =-tool false";
+ data               -tool=".iserasMaxerimized" = style false=";
+padding                this Size =; width, height-align,: x center; this cursor: y pointer: this margin.y-bottom };
+:                
+                4 thispx.create;">();
+           </ }
+            
+>
+ create() {
+ class=" container = selected document".get data-color="#By000Id000"window-container="');
+:                
+                24 constpx window;HTML height =: `
+                    24 px<div; id margin="${: .id4}"px auto="; background": #="000width000; ${ borderthis .width2}pxpx; solid height #:808 ${080this.heightdiv}px>
+;                                left  ${ classthis=".xpaint}px-color;" top data:-color ${="#thisff.y000}px0 z"-index style:=" 40: 24px; height : 24px; margin: <div class="win95-titlebar">
+                           4px auto style="display: # flex;0000;-content:: -between; align solid #808080;">
+;"></div>
+                                 style<div class="paint flex"; align-items:="#;">
+                                    ff" style=" srcwidth: httpspx; height8: 24px16; margin: 4px autoIcon; background}.: #000 alt0ff style=" bordermargin: :2px solid #808                                   080;"></<spandiv>
+                                <divspan class="                               paint-colordiv" data                               -color="#00ff=""display: flex style;=" gapwidth::  224;">
+px;  height<button: class ="24window-minimizepx win95;-button margin":=" min4-width auto: background  #20ffpx00;: border :20 px;2 paddingpx: solid 8080;"></;">_>
+</                            </>
+>
+                            <button class<div="window="-maxfleximize: win 951-button;">
+"                                style ="<canvas-width:paint -c20anvaspx" style=":width:20 px100; padding height::  calc0100;">%□ -</ >
+px                                     border class:=" windowpx inset95 #c0 stylec0minc0: background20 white;canvas height                                 20px style; paddingmargin: :0 ;">8Xpx</button >
+<button                                class </div95                           -button </"div onclick>
+                       clear </Canvasdiv()">
+ style                       =" margin<div-right=":window -content8">
+px                           ;"> ${</thisbutton.content>
+}
+                                                            </<buttondiv class>
+="                   win </95>
+               -button `";
+ onclick                
+="               save containerCanvas()Adjacent">HTMLSavebefore</button', window                                </div               >
+ this                           .element = </div.get>
+                        </div(this>
+.id                   );
+;
+                
+                                   break;
+.add               To 'barcomputer();
+':
+                                   windows title.push =(this ');
+My                Computer bring';
+To                   Front content(this =.id `
+);
+                                    }
+<div            
+ style           =" getdisplayIcon:() grid {
+;               -template const-columns icons: = repeat {
+(                   3 ',not epad1':fr ' gapdocument:',
+                    16 'pxmines;we padding':: '16',
+;">
+ ' cal<divculator style':=" 'textcal-alignculator center                    cursorpaint pointer': ';"paint ondblclickush',
+('                   C 'my Drive')">
+computer                               ':<div ' classcomputer',
+win                   95 'recycle-be':vel" ' styletr="ash',
+                     'px;">
+welcome                                     'windows<img-logo="'
+https               :// };
+img.icons icons8[this.com/color]/ ||48 '/window000';
+000           /hard }
+.png            
+"            style="Task:bar ()48 {
+; const height taskbar 48.getpx;">
+By                               Id </('divtask>
+bar -program<spans style');
+="               font const-size item  =11 document.create;">ElementLocal(' Diskdiv (');
+C               : item)</.classspanName>
+                            ' </taskdivbar>
+-item  win<div-be="vel';
+-align               : item center.text; cursor =: this pointer.title;";
+ on               dbl itemclick.dataset=".windowalertId(' =CD.id-ROM;
+')                item">
+.add                                Listener<div(isMobile=" ?wintou95che-bend'" : style '="click:',  ()16 =>px {
+;">
+                    if  (<imgthis src.isMinhttpsimized://)img {
+.icons                       8 this.com.restore/color();
+/                   48 }/ else000                        bring000/cdFront.png(this".id style);
+="                    }
+:                 });
+48               px task;bar height.append: (item48px               ;">
+ this                                </.taskdivItem>
+ =                                item ;
+<span            style }
+="            
+font minimize:()                11 thispx.is;">MinCDimized-ROM =D true:;
+)</span this>
+                           .class </Listdiv.add>
+('                           hidden ');
+<div                style this=".tasktextbar-alignItem: center.class;List cursor:(' pointeractive;"');
+ ondbl }
+click            
+="alert restore('()Control {
+ Panel               ') this.is                               Min imized<div false;
+ class               =" thiswin.element95-beListvel" stylehidden="');
+: .taskpxItem;">
+.class                                   List .remove<imgactive src');
+https               :// bringimgTo.iconsFront8(this/color.id/           /000           000 maximize()/control {
+               -panel if.png ("this.is="Maximized:) {
+px; this.element: 48px this.originalSize.widthdiv>
+                                <span style="font-size: 11px;">.heightControl Panel</span';
+                                               </div>
+.left = </div.original>
+                   Size.x;
+                    ' break;
+                    
+                    this.element 'recyclebin':
+Size                    title = 'px';
+                } else {
+                    this.originalSize = {
+                        width center this.element padding.offsetWidth ,
+                        height;">
+: this.element.offsetHeight=",
+https://img.icons: parseInt(this/.element96/.left000),
+000                        y:.png" parse styleInt(this.element.style .top)
+px                   ; };
+ height                    
+:  this96px.style;">
+.width = (<pwindow style.innerWidthmargin - 20) +0px font-size                   : 12.style;">The Recycle Bin.innerHeight - 80) + <button class';
+                    this95.element.style.left onclick =alert('Recyclepx';
+                    this')">.style.top =ycle10px';
+button>
+ }
+                </div>
+Max                    ` = !this breakMaximized            }
+            
+ }
+ new            
+           (app close() {
+                this.element.remove();
+                this.taskbarItem.remove();
+                windows features
+ windows.filter(wTimeout(() => {
+                this(app);
+) {
+                    case '        function bring':
+                        initNotepad) {
+            const allWindows = document.querySelectorAll('.                        initMines let maxZ();
+                        break;
+;
+ case 'calculator':
+                       .forEach(w => {
+                const                    case = 'paintInt                       (w.style.zIndex)();
+                        break;
+                }
+            }, 100 max        }
+) max        // ================= z;
+            });
+            
+            const ====================
+        function.getElementByepad() {
+Id);
+            if =window) {
+Element window.style.zIndex = maxZ +            const length =                activeWindow = windowId('                
+                // Update taskbar if                document.query && length) {
+                textarea.addEventListener('input', () => {
+                    length.textContent = textarea.value.length;
+                });
+                textarea.focus();
+            }
+        }
+        
+        // Minesweeper
+        let mineswewindowGame = {
+            grid.task:Item            {
+                    windowObj 8,
+            mineCount: active,
+            revealed: 0 }
+,
+        
+ flags: 0,
+            gameOver:            false,
+            timer windows.find  => w.id === windowId);
+            if (        
+        function window.close();
+ines        }
+        
+        function minimizeWindow(windowId) {
+            const window(' = windows.find(w => w            === windowIdgrid            if (window)            window grid.innerHTML = '';
+                   
+.style function maximizeTemplate(windowId) {
+            constmines window =eperGame.gridSize => 24px)`;
+            
+                       if (window
+            minesweeper();
+ = {
+                grid: [],
+                gridSize:, client,
+, clientY):            touchState.isDragging revealed: 0,
+ touch flags: 0 =,
+               ;
+Over const rect =,
+ window                timer:Client0,
+                           touchState:Offset = null
+ {
+            };
+            
+            // Initialize grid
+            for (let y = 0; y
+           < mineswe       eperGame.gridSize; y++) {
+                ====================
+        function openApp[y] = [];
+                for ( Close start menu = 0; x < minesweeperGame.gridSize; x++) {
+                    minesweeperGame.grid[y][x] = {
+                        isMine: false            const existing = windows.find(w => w.id === false,
+                        is            if (existing) {
+                if (existing.isMinimized) existing.restore();
+ }
+            }
+ bringToFront(app //);
+                Place return;
+            }
+            
+            let0;
+            while (placed  = '';
+weeper let width = 400;
             let height = 300;
-            let title = '';
             
             switch(appName) {
-                case 'notepad':
-                    title = 'Untitled - Notepad'; width = 500; height = 400;
-                    windowContent = `<textarea id="notepad-text" class="w-full h-full win95-bevel-inset p-2 font-mono text-sm resize-none" style="height: calc(100% - 10px);" placeholder="Type here..."></textarea>`;
-                    break;
-                case 'minesweeper':
-                    title = 'Minesweeper'; width = 320; height = 400;
-                    windowContent = `
-                        <div class="text-center mb-2">
-                            <div class="win95-bevel p-1 inline-block"><span id="mines-count" class="font-mono text-xl">💣 10</span></div>
-                            <div class="win95-bevel p-1 inline-block mx-4"><span id="time" class="font-mono text-xl">⏱ 0</span></div>
-                            <button onclick="restartMinesweeper()" class="win95-button">New Game</button>
-                        </div>
-                        <div id="minesweeper-grid" class="grid gap-px justify-center border-4 win95-bevel-inset p-1"></div>
-                        <div class="mt-2 text-xs text-center font-bold">Tap to reveal, Long Press to flag</div>
+                case ');
+                const y = Math = 'Untitled - Notepad';
+                    widthGame.gridSize);
+;
+                    height = 400;
+                   .grid[y][x                        <textarea id="Mineepad-text {
+"                    mines="width: 100%;[y height: calc(100is -  = truepx); border: 2                   px Update neighbors
+                    forc (0 dy =0; padding: 4 1; font++) {
+                        monospace; fontlet: = -1;; dx <=  none1; dx="Type {
+..."></textarea nx =                        x + dx style="margin-top const  nypx; font-size: 10 if (nx >= 0<span id nxnotepad-length">0</span></div>
+                    `;
+                   0 && ny                    
+< minesweeperGameweeper':
+                    title 
+                                !(Minesweeper';
+                    width = 0)) 280;
+                    height = 360;
+                    content][nx].neighborMines++;
+                            }
+                        }
+                   8px; text-align:            
+ center            // display Create: flex; justify            for: (let; = -items; y < minesweeperGame.gridSize; y++) {
+                for (let x = 0; x="padding< mines: 4px 8px;++) {
+                    bold const;">💣 <span id="mines-countdiv10</span.classdiv>
+                            <button class="win95eper-cell';
+                    cellrestartMinesweeper()"                    cell.dataset.y = y;
+                    cell.textContent = '';
+                    
+                    if (isMobile) {
+95-bevel-inset('touchstart', handleCellTouch);
+px 8px; font-weight: bold;">⏱ handleCellRelease);
+                    }">0</span></.addEventListener('click', handleCellClick);
+                       ="mines cell.addEvent-gridListener('contextmenu', grid; gap: );
+                    }
+                    
+                   : center;"></div>
+);
+                        <div            }
+            
+           -top:M8px; text            startM center;weeperTimer();
+       10        
+;">${isMobile ?Touch(e) {
+            const touch = e.touches 'Left click: reveal, Right click:;
+            const x = parse                    `(cell.dataset.x);
+;
+                           y = parseInt(cell.dataset.y title = '           Calculator // Long press timer for flagging;
+            touchState =.long PressTimer;
+ =                    content(() => `
+                        <input type=",text" id="calc-display" readonly style=" }
+        
+        function handleCellRelease(e) {
+            padding: 4pxState.longPress-bottomTimer );
+            
+            if font-size:State16.ispxPress) {
+-family: monospace; border: 2px inset # =c0Int(cell.dataset.x);
+                const y = parseInt(cell style.y=" revealdisplay(x, y);
+            }
+            touchState.isLongPress = false;
+        }
+        
+        function handleCellClick(e):            const cell =px.target;
+             x = parseInt(cell.dataset.x95            const y = parseInt=".y);
+            revealCell(x</ y);
+        }
+        
+        function handle="RightClick(e-button {
+            e="Default();
+            const cell = e.target;
+            const x = parseInt(cell.dataset.x);
+            const y  parse class="win95);
+            toggleFlag(x,Backspace()">←        
+        function reveal>
+                            <button class="win95 if-buttonminesweeper="calc.gameOver) return;
+            
+            const>
+ cell                            
+                            <button classGamewin95[y][x];
+="calcInput('7 (">7</button>
+                            || cell.is="win95-button" onclick="calc cell('.is')">8 = true;
+                                       minesweeper class="win95-button" onclick=" constcalcInput(' = document.querySelector(`[data-x="${x}"][data-y="${y95-button"`);
+            cellElement onclick="calcOperation('*')">*</win>
+                            
+                            <button class="win95-button".class onclickList.add('winInput('4')">4</button>
+                            cell<button.isMine) {
+                cellElement.textContent onclick="calcInput('5')">5</button.background                            =<button class="00095-button" onclick gameOverInput('6')">6</ (cell.neighborMines class 0) {
+                cellElement.textContent =('-')">-</ines>
+                cellElement.classList class="winnumber-button" onclick.neighborM                            <button class="            } else {
+                // Recurse to neighbors
+               ">2</button>
+                            <button class="win95-button1; dy++) {
+                    for (let dx = -button>
+; dx <= class="win95-button" onclick="calcOperation('+')">+</button>
+                            
+                            y + dy;
+="win95-button" onclick="calcNegate()">+/-</button>
+                            <button class="win95-button" onclick=" < minesweeper0')">0</button                           >
+                           (() => revealCell="x, ny),  onclick="calc50);
+('.')">                   .</                }
+            }
+ <button class=" // Check win" onclick="calcEquals()">weeperGamebuttonvealed === (minesweeper>
                     `;
                     break;
-                case 'calculator':
-                    title = 'Calculator'; width = 250; height = 320;
-                    windowContent = `
-                        <div class="calculator">
-                            <input type="text" id="calc-display" readonly class="w-full win95-bevel-inset p-2 text-right text-xl font-mono mb-2" value="0">
-                            <div class="grid grid-cols-4 gap-2">
-                                <button class="win95-button h-10" onclick="calcClear()">C</button>
-                                <button class="win95-button h-10" onclick="calcClearEntry()">CE</button>
-                                <button class="win95-button h-10" onclick="calcBackspace()">←</button>
-                                <button class="win95-button h-10" onclick="calcOperation('/')">/</button>
-                                <button class="win95-button h-10" onclick="calcInput('7')">7</button>
-                                <button class="win95-button h-10" onclick="calcInput('8')">8</button>
-                                <button class="win95-button h-10" onclick="calcInput('9')">9</button>
-                                <button class="win95-button h-10" onclick="calcOperation('*')">*</button>
-                                <button class="win95-button h-10" onclick="calcInput('4')">4</button>
-                                <button class="win95-button h-10" onclick="calcInput('5')">5</button>
-                                <button class="win95-button h-10" onclick="calcInput('6')">6</button>
-                                <button class="win95-button h-10" onclick="calcOperation('-')">-</button>
-                                <button class="win95-button h-10" onclick="calcInput('1')">1</button>
-                                <button class="win95-button h-10" onclick="calcInput('2')">2</button>
-                                <button class="win95-button h-10" onclick="calcInput('3')">3</button>
-                                <button class="win95-button h-10" onclick="calcOperation('+')">+</button>
-                                <button class="win95-button h-10" onclick="calcNegate()">+/-</button>
-                                <button class="win95-button h-10" onclick="calcInput('0')">0</button>
-                                <button class="win95-button h-10" onclick="calcInput('.')">.</button>
-                                <button class="win95-button h-10" onclick="calcEquals()">=</button>
+                    
+                case '.gridpaint':
+                    title = 'Paint';
+ine                    width = 500;
+ gameOver(true);
+            }
+        }
+ content = `
+                       Flag(x, y) {
+            if (minesweeperGame.gameOver) return;
+            
+           win95-be minesweeperGame" style="width: 60px if (cell.is 8px; margin-right: 8px;">
+                                 document.querySelector(`[data-x="${x data-tool="p-yencily}"]`);
+            
+            if (!cell.isFlagged) center; cursor: pointer; margin-bottom: 4;
+px               ;weeperGame.flags++;
+                cell0c0;">✏ '🚩';
+           div else {
+                cell.is<div classged = false;
+-tool                minesweeper="eraser" styleElement.textContent =8px; text-align: center; cursor: pointer; margin-bottom: function updateMinesCounter() {
+div const counter = <div classElementBypaint-color selectedmines-count');
+           ="# if (counter) style {
+="width counter.textContent24 mineswe; heightGame.mineCount - mineswe: Game4px auto            }
+ background: #000000; border startMinesweeper solid #808080;"></div>
+Interval <divines="paint-color" data-color="#ff0000"eper="width: 24px;            
+            const timerElement = document.getElement:By 4px auto; background: #ff0000; border                minesweeperGame.timerInterval = setInterval;"></div>
+                                <div class="paint-color" data-color="#0000ff" style="width: 24px; height: 24px; margin: 4px auto; background: #0000ff; border: 2px solid #808080;"></div>
+                                <div class="paint-color" data-color="#00ff00" style="width: 24px; height: 24px; margin: 4px auto; background: #00ff00; border: 2px solid #808080;"></div>
                             </div>
-                        </div>
-                    `;
-                    break;
-                case 'paint':
-                    title = 'Paint'; width = 500; height = 400;
-                    windowContent = `
-                        <div class="flex h-full">
-                            <div id="paint-tools" class="w-16 win95-bevel-inset p-2 mr-2">
-                                <div class="tool selected mb-2 p-1 text-center cursor-pointer win95-bevel-inset" data-tool="pencil">✏️</div>
-                                <div class="tool mb-2 p-1 text-center cursor-pointer win95-bevel" data-tool="eraser">🧽</div>
-                                <div class="color mb-2 w-6 h-6 mx-auto cursor-pointer win95-bevel bg-black" data-color="#000000"></div>
-                                <div class="color mb-2 w-6 h-6 mx-auto cursor-pointer win95-bevel bg-red-500" data-color="#ff0000"></div>
-                                <div class="color mb-2 w-6 h-6 mx-auto cursor-pointer win95-bevel bg-blue-500" data-color="#0000ff"></div>
-                            </div>
-                            <div class="flex-1">
-                                <canvas id="paint-canvas" width="400" height="300" class="w-full h-full win95-bevel-inset bg-white"></canvas>
-                                <div class="mt-2">
-                                    <button onclick="clearCanvas()" class="win95-button mr-2">Clear</button>
+                            <div style="flex: 1;">
+                                <canvas id="paint-canvas" style="width: 100%; height: calc(100% - 40px); border: 2px inset #c0c0c0; background: white;"></canvas>
+                                <div style="margin-top: 8px;">
+                                    <button class="win95-button" onclick="clearCanvas()" style="margin-right: 8px;">Clear</button>
+                                    <button class="win95-button" onclick="saveCanvas()">Save</button>
                                 </div>
                             </div>
                         </div>
                     `;
                     break;
-                case 'welcome':
-                    title = 'Welcome to Windows 95'; width = 400; height = 350;
-                    windowContent = `
-                        <div class="text-center p-8">
-                            <h1 class="text-xl font-bold mb-4">Welcome to Windows 95</h1>
-                            <img src="https://img.icons8.com/color/64/000000/windows-logo.png" class="w-16 h-16 mx-auto mb-4 filter drop-shadow">
-                            <p class="mb-4">Mobile Touch-Optimized Emulation. Tap desktop icons or use the Start menu to begin!</p>
-                            <button class="win95-button" onclick="closeWindow(this.closest('.window').id)">Close</button>
+                    
+                case 'mycomputer':
+                    title = 'My Computer';
+                    content = `
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 16px;">
+                            <div style="text-align: center; cursor: pointer;" ondblclick="alert('C: Drive')">
+                                <div class="win95-bevel" style="padding: 16px;">
+                                    <img src="https://img.icons8.com/color/48/000000/hard-drive.png" style="width: 48px; height: 48px;">
+                                </div>
+                                <span style="font-size: 11px;">Local Disk (C:)</span>
+                            </div>
+                            <div style="text-align: center; cursor: pointer;" ondblclick="alert('CD-ROM')">
+                                <div class="win95-bevel" style="padding: 16px;">
+                                    <img src="https://img.icons8.com/color/48/000000/cd.png" style="width: 48px; height: 48px;">
+                                </div>
+                                <span style="font-size: 11px;">CD-ROM (D:)</span>
+                            </div>
+                            <div style="text-align: center; cursor: pointer;" ondblclick="alert('Control Panel')">
+                                <div class="win95-bevel" style="padding: 16px;">
+                                    <img src="https://img.icons8.com/color/48/000000/control-panel.png" style="width: 48px; height: 48px;">
+                                </div>
+                                <span style="font-size: 11px;">Control Panel</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'recyclebin':
+                    title = 'Recycle Bin';
+                    content = `
+                        <div style="text-align: center; padding: 32px;">
+                            <img src="https://img.icons8.com/color/96/000000/trash.png" style="width: 96px; height: 96px;">
+                            <p style="margin: 16px 0; font-size: 12px;">The Recycle Bin is empty.</p>
+                            <button class="win95-button" onclick="alert('Recycle Bin emptied!')">Empty Recycle Bin</button>
                         </div>
                     `;
                     break;
             }
             
-            const newWindow = new Window(appName, title, windowContent, width, height);
+            new Window(appName, title, content, width, height);
             
-            // Initialize app-specific functionality
-            switch(appName) {
-                case 'minesweeper': initMinesweeper(); break;
-                case 'calculator': initCalculator(); break;
-                case 'paint': initPaint(); break;
+            // Initialize app-specific features
+            setTimeout(() => {
+                switch(appName) {
+                    case 'notepad':
+                        initNotepad();
+                        break;
+                    case 'minesweeper':
+                        initMinesweeper();
+                        break;
+                    case 'calculator':
+                        initCalculator();
+                        break;
+                    case 'paint':
+                        initPaint();
+                        break;
+                }
+            }, 100);
+        }
+        
+        // ==================== APP-SPECIFIC FUNCTIONS ====================
+        function initNotepad() {
+            const textarea = document.getElementById('notepad-text');
+            const length = document.getElementById('notepad-length');
+            if (textarea && length) {
+                textarea.addEventListener('input', () => {
+                    length.textContent = textarea.value.length;
+                });
+                textarea.focus();
             }
         }
         
-        function createWelcomeWindow() {
-            openApp('welcome');
+        // Minesweeper
+        let minesweeperGame = {
+            grid: [],
+            gridSize: 8,
+            mineCount: 10,
+            revealed: 0,
+            flags: 0,
+            gameOver: false,
+            timer: 0,
+            timerInterval: null
+        };
+        
+        function initMinesweeper() {
+            const grid = document.getElementById('minesweeper-grid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${minesweeperGame.gridSize}, 24px)`;
+            
+            // Reset game
+            minesweeperGame = {
+                grid: [],
+                gridSize: 8,
+                mineCount: 10,
+                revealed: 0,
+                flags: 0,
+                gameOver: false,
+                timer: 0,
+                timerInterval: null
+            };
+            
+            // Initialize grid
+            for (let y = 0; y < minesweeperGame.gridSize; y++) {
+                minesweeperGame.grid[y] = [];
+                for (let x = 0; x < minesweeperGame.gridSize; x++) {
+                    minesweeperGame.grid[y][x] = {
+                        isMine: false,
+                        isRevealed: false,
+                        isFlagged: false,
+                        neighborMines: 0
+                    };
+                }
+            }
+            
+            // Place mines
+            let placed = 0;
+            while (placed < minesweeperGame.mineCount) {
+                const x = Math.floor(Math.random() * minesweeperGame.gridSize);
+                const y = Math.floor(Math.random() * minesweeperGame.gridSize);
+                if (!minesweeperGame.grid[y][x].isMine) {
+                    minesweeperGame.grid[y][x].isMine = true;
+                    placed++;
+                    
+                    // Update neighbors
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < minesweeperGame.gridSize && 
+                                ny >= 0 && ny < minesweeperGame.gridSize && 
+                                !(dx === 0 && dy === 0)) {
+                                minesweeperGame.grid[ny][nx].neighborMines++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Create cells
+            for (let y = 0; y < minesweeperGame.gridSize; y++) {
+                for (let x = 0; x < minesweeperGame.gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'win95-bevel minesweeper-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.textContent = '';
+                    
+                    if (isMobile) {
+                        cell.addEventListener('touchstart', handleCellTouch);
+                        cell.addEventListener('touchend', handleCellRelease);
+                    } else {
+                        cell.addEventListener('click', handleCellClick);
+                        cell.addEventListener('contextmenu', handleCellRightClick);
+                    }
+                    
+                    grid.appendChild(cell);
+                }
+            }
+            
+            updateMinesCounter();
+            startMinesweeperTimer();
         }
         
+        function handleCellTouch(e) {
+            const touch = e.touches[0];
+            const cell = e.target;
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+            
+            // Long press timer for flagging
+            touchState.longPressTimer = setTimeout(() => {
+                toggleFlag(x, y);
+            }, 500);
+        }
+        
+        function handleCellRelease(e) {
+            clearTimeout(touchState.longPressTimer);
+            
+            if (!touchState.isLongPress) {
+                const cell = e.target;
+                const x = parseInt(cell.dataset.x);
+                const y = parseInt(cell.dataset.y);
+                revealCell(x, y);
+            }
+            touchState.isLongPress = false;
+        }
+        
+        function handleCellClick(e) {
+            const cell = e.target;
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+            revealCell(x, y);
+        }
+        
+        function handleCellRightClick(e) {
+            e.preventDefault();
+            const cell = e.target;
+            const x = parseInt(cell.dataset.x);
+            const y = parseInt(cell.dataset.y);
+            toggleFlag(x, y);
+        }
+        
+        function revealCell(x, y) {
+            if (minesweeperGame.gameOver) return;
+            
+            const cell = minesweeperGame.grid[y][x];
+            if (cell.isRevealed || cell.isFlagged) return;
+            
+            cell.isRevealed = true;
+            minesweeperGame.revealed++;
+            
+            const cellElement = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+            cellElement.classList.remove('win95-bevel');
+            cellElement.classList.add('win95-bevel-inset');
+            
+            if (cell.isMine) {
+                cellElement.textContent = '💣';
+                cellElement.style.background = '#ff0000';
+                gameOver(false);
+            } else if (cell.neighborMines > 0) {
+                cellElement.textContent = cell.neighborMines;
+                cellElement.classList.add(`number-${cell.neighborMines}`);
+            } else {
+                // Recurse to neighbors
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx >= 0 && nx < minesweeperGame.gridSize && 
+                            ny >= 0 && ny < minesweeperGame.gridSize) {
+                            setTimeout(() => revealCell(nx, ny), 50);
+                        }
+                    }
+                }
+            }
+            
+            // Check win
+            if (minesweeperGame.revealed === (minesweeperGame.gridSize * minesweeperGame.gridSize - minesweeperGame.mineCount)) {
+                gameOver(true);
+            }
+        }
+        
+        function toggleFlag(x, y) {
+            if (minesweeperGame.gameOver) return;
+            
+            const cell = minesweeperGame.grid[y][x];
+            if (cell.isRevealed) return;
+            
+            const cellElement = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+            
+            if (!cell.isFlagged) {
+                cell.isFlagged = true;
+                minesweeperGame.flags++;
+                cellElement.textContent = '🚩';
+            } else {
+                cell.isFlagged = false;
+                minesweeperGame.flags--;
+                cellElement.textContent = '';
+            }
+            
+            updateMinesCounter();
+        }
+        
+        function updateMinesCounter() {
+            const counter = document.getElementById('mines-count');
+            if (counter) {
+                counter.textContent = minesweeperGame.mineCount - minesweeperGame.flags;
+            }
+        }
+        
+        function startMinesweeperTimer() {
+            clearInterval(minesweeperGame.timerInterval);
+            minesweeperGame.timer = 0;
+            
+            const timerElement = document.getElementById('timer');
+            if (timerElement) {
+                minesweeperGame.timerInterval = setInterval(() => {
+                    if (!minesweeperGame.gameOver) {
+                        minesweeperGame.timer++;
+                        timerElement.textContent = minesweeperGame.timer;
+                    }
+                }, 1000);
+            }
+        }
+        
+        function gameOver(won) {
+            minesweeperGame.gameOver = true;
+            clearInterval(minesweeperGame.timerInterval);
+            
+            setTimeout(() => {
+                alert(won ? 'You Win!' : 'Game Over!');
+            }, 100);
+        }
+        
+        function restartMinesweeper() {
+            initMinesweeper();
+        }
+        
+        // Calculator
+        let calculator = {
+            display: '0',
+            firstOperand: null,
+            operator: null,
+            waiting: false
+        };
+        
+        function initCalculator() {
+            calculator = {
+                display: '0',
+                firstOperand: null,
+                operator: null,
+                waiting: false
+            };
+            updateCalcDisplay();
+        }
+        
+        function calcInput(digit) {
+            if (calculator.waiting) {
+                calculator.display = digit;
+                calculator.waiting = false;
+            } else {
+                calculator.display = calculator.display === '0' ? digit : calculator.display + digit;
+            }
+            updateCalcDisplay();
+        }
+        
+        function calcClear() {
+            calculator.display = '0';
+            calculator.firstOperand = null;
+            calculator.operator = null;
+            calculator.waiting = false;
+            updateCalcDisplay();
+        }
+        
+        function calcClearEntry() {
+            calculator.display = '0';
+            updateCalcDisplay();
+        }
+        
+        function calcBackspace() {
+            calculator.display = calculator.display.length > 1 ? calculator.display.slice(0, -1) : '0';
+            updateCalcDisplay();
+        }
+        
+        function calcNegate() {
+            calculator.display = String(-parseFloat(calculator.display));
+            updateCalcDisplay();
+        }
+        
+        function calcOperation(op) {
+            const input = parseFloat(calculator.display);
+            
+            if (calculator.operator && !calculator.waiting) {
+                calcEquals();
+            }
+            
+            calculator.firstOperand = parseFloat(calculator.display);
+            calculator.operator = op;
+            calculator.waiting = true;
+        }
+        
+        function calcEquals() {
+            if (!calculator.operator || calculator.firstOperand === null) return;
+            
+            const second = parseFloat(calculator.display);
+            let result;
+            
+            switch(calculator.operator) {
+                case '+': result = calculator.firstOperand + second; break;
+                case '-': result = calculator.firstOperand - second; break;
+                case '*': result = calculator.firstOperand * second; break;
+                case '/': result = calculator.firstOperand / second; break;
+                default: return;
+            }
+            
+            calculator.display = String(result);
+            calculator.firstOperand = null;
+            calculator.operator = null;
+            calculator.waiting = false;
+            updateCalcDisplay();
+        }
+        
+        function updateCalcDisplay() {
+            const display = document.getElementById('calc-display');
+            if (display) display.value = calculator.display;
+        }
+        
+        // Paint
+        let paint = {
+            canvas: null,
+            ctx: null,
+            drawing: false,
+            tool: 'pencil',
+            color: '#000000'
+        };
+        
+        function initPaint() {
+            const canvas = document.getElementById('paint-canvas');
+            if (!canvas) return;
+            
+            paint.canvas = canvas;
+            paint.ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Clear
+            paint.ctx.fillStyle = '#ffffff';
+            paint.ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Tools
+            document.querySelectorAll('.paint-tool').forEach(tool => {
+                tool.addEventListener('click', function() {
+                    document.querySelectorAll('.paint-tool').forEach(t => t.classList.remove('selected'));
+                    this.classList.add('selected');
+                    paint.tool = this.dataset.tool;
+                });
+            });
+            
+            // Colors
+            document.querySelectorAll('.paint-color').forEach(color => {
+                color.addEventListener('click', function() {
+                    document.querySelectorAll('.paint-color').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    paint.color = this.dataset.color;
+                });
+            });
+            
+            // Drawing events
+            if (isMobile) {
+                canvas.addEventListener('touchstart', startDrawing);
+                canvas.addEventListener('touchmove', draw);
+                canvas.addEventListener('touchend', stopDrawing);
+            } else {
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+            }
+        }
+        
+        function startDrawing(e) {
+            paint.drawing = true;
+            const rect = paint.canvas.getBoundingClientRect();
+            const x = (isMobile ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (isMobile ? e.touches[0].clientY : e.clientY) - rect.top;
+            paint.ctx.beginPath();
+            paint.ctx.moveTo(x, y);
+        }
+        
+        function draw(e) {
+            if (!paint.drawing) return;
+            e.preventDefault();
+            
+            const rect = paint.canvas.getBoundingClientRect();
+            const x = (isMobile ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (isMobile ? e.touches[0].clientY : e.clientY) - rect.top;
+            
+            paint.ctx.lineWidth = paint.tool === 'eraser' ? 10 : 2;
+            paint.ctx.lineCap = 'round';
+            paint.ctx.strokeStyle = paint.tool === 'eraser' ? '#ffffff' : paint.color;
+            paint.ctx.lineTo(x, y);
+            paint.ctx.stroke();
+        }
+        
+        function stopDrawing() {
+            paint.drawing = false;
+        }
+        
+        function clearCanvas() {
+            if (paint.ctx) {
+                paint.ctx.fillStyle = '#ffffff';
+                paint.ctx.fillRect(0, 0, paint.canvas.width, paint.canvas.height);
+            }
+        }
+        
+        function saveCanvas() {
+            if (paint.canvas) {
+                const link = document.createElement('a');
+                link.download = 'windows95-paint.png';
+                link.href = paint.canvas.toDataURL();
+                link.click();
+            }
+        }
+        
+        // ==================== UTILITY FUNCTIONS ====================
         function toggleStartMenu() {
             const menu = document.getElementById('start-menu');
-            menu.classList.toggle('hidden');
-            if (!menu.classList.contains('hidden')) {
-                // Ensure menu is always on top
-                menu.style.zIndex = '950'; 
+            startMenuOpen = !startMenuOpen;
+            
+            if (startMenuOpen) {
+                menu.classList.add('show');
+                bringToFront('start-menu');
+            } else {
+                menu.classList.remove('show');
             }
         }
         
         function initClock() {
             function updateClock() {
                 const now = new Date();
-                const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                document.getElementById('clock').textContent = timeString;
+                const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                document.getElementById('clock').textContent = time;
             }
             updateClock();
             setInterval(updateClock, 1000);
@@ -615,294 +1932,54 @@
         
         function shutdown() {
             if (confirm('Are you sure you want to shut down Windows 95?')) {
-                document.body.innerHTML = `<div class="w-full h-full bg-black flex items-center justify-center"><div class="text-center text-white"><p class="text-2xl mb-4">It's now safe to turn off your computer.</p><p class="text-gray-400">Windows 95 Mobile Emulation</p></div></div>`;
-            }
-        }
-
-        // --- Notepad App (Basic) ---
-        // Typing is native in the textarea, no special JS needed beyond initialization.
-        // It's already functional based on the HTML structure.
-
-        // --- Minesweeper App (Functional) ---
-
-        function initMinesweeper() {
-            if (minesweeperGame && minesweeperGame.timerInterval) {
-                clearInterval(minesweeperGame.timerInterval);
-            }
-            minesweeperGame = {
-                grid: [], mineCount: 10, gridSize: 10, flags: 0, revealed: 0, gameOver: false, timerInterval: null
-            };
-            generateMinesweeperGrid();
-            startMinesweeperTimer();
-        }
-
-        function generateMinesweeperGrid() {
-            const gridEl = document.getElementById('minesweeper-grid');
-            if (!gridEl) return;
-            gridEl.innerHTML = '';
-            gridEl.style.gridTemplateColumns = `repeat(${minesweeperGame.gridSize}, 30px)`;
-            
-            // Initialize grid structure... (Implementation details omitted for brevity, but full logic is assumed)
-            minesweeperGame.grid = Array(minesweeperGame.gridSize).fill(0).map((_, y) => 
-                Array(minesweeperGame.gridSize).fill(0).map((_, x) => ({ isMine: false, isRevealed: false, isFlagged: false, neighborMines: 0 }))
-            );
-
-            // Place mines and calculate neighbors (Full logic assumed)
-            let minesPlaced = 0;
-            while (minesPlaced < minesweeperGame.mineCount) {
-                const x = Math.floor(Math.random() * minesweeperGame.gridSize);
-                const y = Math.floor(Math.random() * minesweeperGame.gridSize);
-                if (!minesweeperGame.grid[y][x].isMine) {
-                    minesweeperGame.grid[y][x].isMine = true;
-                    minesPlaced++;
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            const nx = x + dx, ny = y + dy;
-                            if (nx >= 0 && nx < minesweeperGame.gridSize && ny >= 0 && ny < minesweeperGame.gridSize) {
-                                minesweeperGame.grid[ny][nx].neighborMines++;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Create DOM cells
-            minesweeperGame.grid.forEach((row, y) => {
-                row.forEach((cell, x) => {
-                    const cellEl = document.createElement('div');
-                    cellEl.className = 'cell-hidden w-[30px] h-[30px] flex items-center justify-center text-sm';
-                    cellEl.dataset.x = x;
-                    cellEl.dataset.y = y;
-                    gridEl.appendChild(cellEl);
-                });
-            });
-            updateMinesCount();
-        }
-
-        function revealCell(x, y) {
-            if (minesweeperGame.gameOver) return;
-            const cell = minesweeperGame.grid[y][x];
-            if (cell.isRevealed || cell.isFlagged) return;
-            
-            cell.isRevealed = true;
-            minesweeperGame.revealed++;
-            
-            const cellEl = document.querySelector(`#minesweeper-grid div[data-x="${x}"][data-y="${y}"]`);
-            cellEl.className = `cell-revealed w-[30px] h-[30px] flex items-center justify-center text-sm number-${cell.neighborMines}`;
-            
-            if (cell.isMine) {
-                cellEl.textContent = '💣';
-                cellEl.style.backgroundColor = 'red';
-                gameOver(false);
-                return;
-            }
-            
-            cellEl.textContent = cell.neighborMines > 0 ? cell.neighborMines : '';
-            
-            if (cell.neighborMines === 0) {
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        const nx = x + dx, ny = y + dy;
-                        if (nx >= 0 && nx < minesweeperGame.gridSize && ny >= 0 && ny < minesweeperGame.gridSize && !minesweeperGame.grid[ny][nx].isRevealed) {
-                            // Use a small delay for cascading effect
-                            setTimeout(() => revealCell(nx, ny), 10);
-                        }
-                    }
-                }
-            }
-            
-            if (minesweeperGame.revealed === (minesweeperGame.gridSize * minesweeperGame.gridSize - minesweeperGame.mineCount)) {
-                gameOver(true);
-            }
-        }
-
-        function toggleFlag(x, y) {
-            if (minesweeperGame.gameOver) return;
-            const cell = minesweeperGame.grid[y][x];
-            if (cell.isRevealed) return;
-            
-            cell.isFlagged = !cell.isFlagged;
-            minesweeperGame.flags += cell.isFlagged ? 1 : -1;
-            
-            const cellEl = document.querySelector(`#minesweeper-grid div[data-x="${x}"][data-y="${y}"]`);
-            cellEl.className = cell.isFlagged ? 
-                'cell-flag w-[30px] h-[30px] flex items-center justify-center text-sm' : 
-                'cell-hidden w-[30px] h-[30px] flex items-center justify-center text-sm';
-            cellEl.textContent = cell.isFlagged ? '🚩' : '';
-            
-            updateMinesCount();
-        }
-        
-        function updateMinesCount() {
-            document.getElementById('mines-count').textContent = `💣 ${minesweeperGame.mineCount - minesweeperGame.flags}`;
-        }
-
-        function startMinesweeperTimer() {
-            let elapsed = 0;
-            const timeEl = document.getElementById('time');
-            if (minesweeperGame.timerInterval) clearInterval(minesweeperGame.timerInterval);
-            minesweeperGame.timerInterval = setInterval(() => {
-                elapsed++;
-                if(timeEl) timeEl.textContent = `⏱ ${elapsed}`;
-            }, 1000);
-        }
-
-        function gameOver(isWin) {
-            minesweeperGame.gameOver = true;
-            clearInterval(minesweeperGame.timerInterval);
-            alert(isWin ? 'Congratulations! You won!' : 'Game Over! You hit a mine!');
-        }
-        
-        function restartMinesweeper() {
-            initMinesweeper();
-        }
-
-        // --- Calculator App (Functional) ---
-
-        const performCalculation = {
-            '/': (a, b) => a / b, '*': (a, b) => a * b, '+': (a, b) => a + b, '-': (a, b) => a - b
-        };
-        
-        function updateCalcDisplay() {
-            const displayEl = document.getElementById('calc-display');
-            if (displayEl) displayEl.value = calculator.display;
-        }
-        
-        function calcInput(digit) {
-            const { display, waitingForSecondOperand } = calculator;
-            if (waitingForSecondOperand) {
-                calculator.display = digit;
-                calculator.waitingForSecondOperand = false;
-            } else {
-                calculator.display = display === '0' && digit !== '.' ? digit : display + digit;
-            }
-            updateCalcDisplay();
-        }
-        
-        function calcOperation(nextOperator) {
-            const { firstOperand, display, operator } = calculator;
-            const inputValue = parseFloat(display);
-            
-            if (operator && calculator.waitingForSecondOperand) {
-                calculator.operator = nextOperator;
-                return;
-            }
-            
-            if (firstOperand === null) {
-                calculator.firstOperand = inputValue;
-            } else if (operator) {
-                const result = performCalculation[operator](firstOperand, inputValue);
-                calculator.display = String(result);
-                calculator.firstOperand = result;
-            }
-            
-            calculator.waitingForSecondOperand = true;
-            calculator.operator = nextOperator;
-            updateCalcDisplay();
-        }
-        
-        function calcEquals() {
-            const { firstOperand, display, operator } = calculator;
-            if (operator) {
-                const result = performCalculation[operator](firstOperand, parseFloat(display));
-                calculator.display = String(result);
-                calculator.firstOperand = null;
-                calculator.waitingForSecondOperand = true;
-                calculator.operator = null;
-                updateCalcDisplay();
+                document.body.innerHTML = `
+                    <div style="width: 100vw; height: 100vh; background: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; text-align: center;">
+                        <div>
+                            <p style="font-size: 24px; margin-bottom: 16px;">It's now safe to turn off your computer.</p>
+                            <p style="color: #808080;">Windows 95 Mobile Emulation</p>
+                        </div>
+                    </div>
+                `;
             }
         }
         
-        function calcClear() { initCalculator(); }
-        function calcClearEntry() { calculator.display = '0'; updateCalcDisplay(); }
-        function calcBackspace() { calculator.display = calculator.display.length > 1 ? calculator.display.slice(0, -1) : '0'; updateCalcDisplay(); }
-        function calcNegate() { calculator.display = String(-parseFloat(calculator.display)); updateCalcDisplay(); }
-
-        // --- Paint App (Basic Drawing) ---
-
-        function initPaint() {
-            const canvas = document.getElementById('paint-canvas');
-            paint.canvas = canvas;
-            paint.context = canvas.getContext('2d');
+        // ==================== MOBILE TOUCH BUTTONS ====================
+        if (isMobile) {
+            let leftClickDown = false;
+            let rightClickDown = false;
             
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            paint.context.fillStyle = '#ffffff';
-            paint.context.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Tool selection logic
-            document.querySelectorAll('#paint-tools .tool').forEach(tool => {
-                tool.onclick = function() {
-                    document.querySelectorAll('#paint-tools .tool').forEach(t => t.classList.remove('win95-bevel-inset'));
-                    this.classList.add('win95-bevel-inset');
-                    paint.tool = this.dataset.tool;
-                };
+            document.getElementById('left-click-btn').addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                leftClickDown = true;
+                this.style.borderColor = '#808080';
             });
             
-            // Color selection logic
-            document.querySelectorAll('#paint-tools .color').forEach(color => {
-                color.onclick = function() {
-                    paint.color = this.dataset.color;
-                };
+            document.getElementById('left-click-btn').addEventListener('touchend', function(e) {
+                e.preventDefault();
+                leftClickDown = false;
+                this.style.borderColor = '#dfdfdf';
             });
             
-            // Drawing Event Handlers
-            canvas.addEventListener('mousedown', startPosition);
-            canvas.addEventListener('mouseup', finishedPosition);
-            canvas.addEventListener('mousemove', draw);
+            document.getElementById('right-click-btn').addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                rightClickDown = true;
+                this.style.borderColor = '#808080';
+            });
             
-            // IMPORTANT: For Paint, we need to bypass the global touch handlers
-            // and use native touch-to-mouse conversion *only* over the canvas.
-            // This is complex, but for this level of emulation, the global
-            // touch handlers will be adequate to simulate the cursor movement,
-            // and the native mouse events will trigger drawing when the user
-            // "taps" to click the mouse button down.
+            document.getElementById('right-click-btn').addEventListener('touchend', function(e) {
+                e.preventDefault();
+                rightClickDown = false;
+                this.style.borderColor = '#dfdfdf';
+            });
         }
         
-        function getCanvasCoords(e) {
-            const rect = paint.canvas.getBoundingClientRect();
-            // Use clientX/Y from the event (or first touch)
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
-            
-            // Calculate coordinates relative to the canvas
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
-        }
-        
-        function startPosition(e) {
-            paint.painting = true;
-            paint.context.beginPath();
-            const { x, y } = getCanvasCoords(e);
-            paint.context.moveTo(x, y);
-            draw(e);
-        }
-        
-        function finishedPosition() {
-            paint.painting = false;
-        }
-        
-        function draw(e) {
-            if (!paint.painting) return;
-            
-            const { x, y } = getCanvasCoords(e);
-            
-            paint.context.lineWidth = paint.tool === 'eraser' ? 10 : 2;
-            paint.context.lineCap = 'round';
-            paint.context.strokeStyle = paint.tool === 'eraser' ? '#ffffff' : paint.color;
-            
-            paint.context.lineTo(x, y);
-            paint.context.stroke();
-            paint.context.beginPath();
-            paint.context.moveTo(x, y);
-        }
-        
-        function clearCanvas() {
-            paint.context.fillStyle = '#ffffff';
-            paint.context.fillRect(0, 0, paint.canvas.width, paint.canvas.height);
-        }
+        // Click outside to close start menu
+        document.addEventListener(isMobile ? 'touchend' : 'click', function(e) {
+            if (!e.target.closest('#start-button') && !e.target.closest('#start-menu')) {
+                document.getElementById('start-menu').classList.remove('show');
+                startMenuOpen = false;
+            }
+        });
     </script>
 </body>
 </html>
